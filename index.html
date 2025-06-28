@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star Trek HTML Editor Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/theme/midnight.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/theme/material.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/theme/eclipse.min.css">
+    <style>
+        :root {
+            --primary: #47c2ff;
+            --secondary: #235d77;
+            --background: #0a1a24;
+            --text: #e0e0e0;
+            --accent: #ff4747;
+            --success: #47ff47;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden; 
+        }
+
+        .navbar {
+            background: var(--secondary);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border-bottom: 2px solid var(--primary);
+            text-align: center;
+        }
+
+        .navbar-top {
+            display: flex;
+            flex-direction: column; 
+            gap: 0.5rem; 
+            align-items: center;
+            text-align: center;
+        }
+        
+        @media (min-width: 768px) { 
+            .navbar-top {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+        }
+
+        .navbar h1 {
+            color: var(--primary);
+            font-size: 1.3rem; 
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-align: center;
+            margin-bottom: 0.5rem; 
+        }
+         @media (min-width: 768px) {
+            .navbar h1 {
+                font-size: 1.5rem;
+                margin-bottom: 0;
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem; 
+            align-items: center;
+            flex-wrap: wrap; 
+            justify-content: center; 
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            font-size: 15px;
+            justify-content: center; 
+            padding-top: 0.5rem; 
+        }
+
+        .btn {
+            background: var(--primary);
+            color: var(--background);
+            border: none;
+            padding: 0.4rem 0.8rem; 
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem; 
+        }
+
+        .btn:hover {
+            background: #5fd4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        .btn-tag {
+            background: var(--secondary);
+            font-size: 1.2rem; 
+            padding: 0.2rem 0.5rem;
+        }
+
+        .btn-tag:hover {
+            background: var(--primary);
+        }
+
+        .viewport-select {
+            background: var(--secondary);
+            color: var(--text);
+            border: 1px solid var(--primary);
+            padding: 0.4rem; 
+            border-radius: 4px;
+            font-size: 0.9rem; 
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column; 
+            height: auto; 
+        }
+        
+        @media (min-width: 1024px) { 
+             .main-container {
+                flex-direction: row;
+                height: calc(100vh - 155px); 
+            }
+        }
+
+        .editor-section, .preview-section {
+            flex: 1;
+            padding: 0.5rem; 
+            position: relative;
+            min-height: 300px; 
+        }
+        
+        @media (min-width: 1024px) {
+             .editor-section, .preview-section {
+                padding: 1rem;
+            }
+        }
+
+        .editor-section::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 10%;
+            height: 80%;
+            width: 2px;
+            background: var(--primary);
+            box-shadow: 0 0 10px var(--primary);
+            display: none; 
+        }
+        
+        @media (min-width: 1024px) {
+            .editor-section::after {
+                display: block; 
+            }
+        }
+
+        .editor-container {
+            width: 100%;
+            height: 100%;
+            border: 1px solid var(--secondary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            width: 100% !important;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .cm-s-midnight.CodeMirror { 
+            background-color: #0d2635 !important; 
+            color: var(--text) !important;
+        }
+        .cm-s-midnight .CodeMirror-gutters { 
+            background: #08131c !important; 
+            border-right: 1px solid var(--secondary) !important;
+        }
+        .cm-s-midnight .cm-tag { color: #47c2ff !important; font-weight: bold; }
+        .cm-s-midnight .cm-attribute { color: #ffcc00 !important; }
+        .cm-s-midnight .cm-string { color: #47ff47 !important; }
+        .cm-s-midnight .cm-bracket { color: #ff9900 !important; }  
+
+        /* Styly pro lintovací značky byly ODSTRANĚNY */
+
+        #preview {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border: none;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .glow {
+            box-shadow: 0 0 15px var(--primary);
+            animation: glow 1.5s ease-in-out infinite alternate;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            background: var(--success);
+            color: var(--background);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000; 
+        }
+
+        .status.show { opacity: 1; }
+        @keyframes glow {
+            from { box-shadow: 0 0 5px var(--primary); }
+            to { box-shadow: 0 0 20px var(--primary); }
+        }
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        .theme-switch { display: flex; gap: 0.5rem; }
+        .theme-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--text);
+            cursor: pointer;
+        }
+        .theme-btn:hover { transform: scale(1.2); }
+
+        .syntax-switch { display: flex; gap: 0.5rem; }
+        .syntax-btn {
+            padding: 0.3rem 0.6rem;
+            background: var(--secondary);
+            color: var(--text);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .syntax-btn.active {
+            background: var(--primary);
+            color: var(--background);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-top">
+            <h1>🖖 Star Trek HTML Editor Pro 🖖</h1>
+            <div class="controls">
+                <select class="viewport-select" id="viewport">
+                    <option value="100%">Desktop</option>
+                    <option value="768px">Tablet</option>
+                    <option value="375px">Mobil</option>
+                </select>
+                <button class="btn" id="save">💾 Uložit</button>
+                <button class="btn" id="format">✨ Formátovat</button>
+                <div class="theme-switch">
+                    <div class="theme-btn" style="background: #47c2ff;" data-theme="default" title="Výchozí motiv aplikace"></div>
+                    <div class="theme-btn" style="background: #ff4747;" data-theme="red" title="Červený motiv aplikace"></div>
+                    <div class="theme-btn" style="background: #47ff47;" data-theme="green" title="Zelený motiv aplikace"></div>
+                </div>
+                <select class="viewport-select" id="codeMirrorThemeSelect" title="Téma editoru kódu">
+                    <option value="midnight">Midnight</option>
+                    <option value="material">Material</option>
+                    <option value="dracula">Dracula</option>
+                    <option value="monokai">Monokai</option>
+                    <option value="eclipse">Eclipse</option>
+                </select>
+                <div class="syntax-switch">
+                    <button class="syntax-btn active" data-lang="html" title="Přepnout na HTML">HTML</button>
+                    <button class="syntax-btn" data-lang="css" title="Přepnout na CSS">CSS</button>
+                    <button class="syntax-btn" data-lang="js" title="Přepnout na JavaScript">JS</button>
+                </div>
+            </div>
+        </div>
+        <div class="toolbar">
+            <button class="btn btn-tag" data-tag="div" title="Vložit <div></div>">&lt;div&gt;</button>
+            <button class="btn btn-tag" data-tag="p" title="Vložit <p></p>">&lt;p&gt;</button>
+            <button class="btn btn-tag" data-tag="h1" title="Vložit <h1></h1>">&lt;h1&gt;</button>
+            <button class="btn btn-tag" data-tag="a" title="Vložit <a></a>">&lt;a&gt;</button>
+            <button class="btn btn-tag" data-tag="img" title="Vložit <img>">&lt;img&gt;</button>
+            <button class="btn btn-tag" data-tag="ul" title="Vložit <ul></ul>">&lt;ul&gt;</button>
+            <button class="btn btn-tag" data-tag="table" title="Vložit <table></table>">&lt;table&gt;</button>
+            <button class="btn btn-tag" data-tag="form" title="Vložit <form></form>">&lt;form&gt;</button>
+            <button class="btn btn-tag" data-tag="input" title="Vložit <input>">&lt;input&gt;</button>
+            <button class="btn btn-tag" data-tag="button" title="Vložit <button></button>">&lt;button&gt;</button>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <section class="editor-section">
+            <div class="editor-container glow">
+                <textarea id="editor"><!DOCTYPE html>
+<html>
+<head>
+    <title>Můj kód</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f0f0; color: #333; padding: 20px; }
+        h1 { color: #007bff; }
+        p { line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <h1>Vítej ve Star Trek HTML Editoru!</h1>
+    <p>Začni psát svůj kód zde nebo si vyber nějaký tag z horní lišty pro rychlé vložení.</p>
+    <div><p>Toto je <span>testovací</span> text.</p></div> <script>
+        function testLinterOk() {
+            const x = 10; 
+            console.log("Test OK"); 
+            return x;
+        }
+        testLinterOk();
+    </script>
+</body>
+</html></textarea>
+            </div>
+        </section>
+        <section class="preview-section">
+            <iframe id="preview"></iframe>
+        </section>
+    </div>
+
+    <div class="status" id="status">Změny uloženy!</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.6/addon/edit/closebrackets.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.11/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.11/beautify-html.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.11/beautify-css.min.js"></script>
+    
+    <script>
+        // Konzolové výpisy pro lintery byly ODSTRANĚNY
+
+        // Elements
+        const editorTextarea = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const viewport = document.getElementById('viewport');
+        const saveBtn = document.getElementById('save');
+        const formatBtn = document.getElementById('format');
+        const status = document.getElementById('status');
+        const themeButtons = document.querySelectorAll('.theme-btn');
+        const tagButtons = document.querySelectorAll('.btn-tag');
+        const syntaxButtons = document.querySelectorAll('.syntax-btn');
+        const codeMirrorThemeSelect = document.getElementById('codeMirrorThemeSelect');
+
+        // Globální konfigurace pro JSHINT byla ODSTRANĚNA (není potřeba bez lintingu)
+
+
+        // Initialize CodeMirror
+        const codeMirror = CodeMirror.fromTextArea(editorTextarea, {
+            mode: "htmlmixed",
+            theme: "midnight", 
+            lineNumbers: true,
+            autoCloseTags: true,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            indentUnit: 4, 
+            tabSize: 4,
+            lineWrapping: true,
+            // lint: true, // ODSTRANĚNO
+            // gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"] // ODSTRANĚNO CodeMirror-lint-markers
+            gutters: ["CodeMirror-linenumbers"] // Ponechán pouze gutter pro čísla řádků
+        });
+
+        // Real-time preview
+        function updatePreview() {
+            const previewDocument = preview.contentDocument;
+            previewDocument.open();
+            try {
+                previewDocument.write(codeMirror.getValue());
+            } catch (e) {
+                console.error("Chyba při zápisu do iframe:", e);
+                previewDocument.write("<html><head><title>Chyba náhledu</title></head><body><h1>Chyba při generování náhledu</h1><p>Zkontrolujte prosím konzoli pro více detailů.</p></body></html>");
+            }
+            previewDocument.close();
+        }
+
+        function updateViewport() {
+            preview.style.width = viewport.value;
+        }
+
+        function saveCode() {
+            try {
+                const blob = new Blob([codeMirror.getValue()], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'star-trek-code.html'; 
+                document.body.appendChild(a); 
+                a.click();
+                document.body.removeChild(a); 
+                URL.revokeObjectURL(url);
+                showStatus('Kód úspěšně uložen! 🚀');
+            } catch(e) {
+                console.error("Chyba při ukládání kódu:", e);
+                showStatus('Chyba při ukládání kódu! 💔', true);
+            }
+        }
+
+        function formatCode() {
+            try {
+                let content = codeMirror.getValue();
+                let currentMode = codeMirror.getOption("mode");
+                let formattedContent = content; 
+
+                const options = {
+                    indent_size: 2, 
+                    indent_char: ' ', 
+                    max_preserve_newlines: 2, 
+                    preserve_newlines: true,
+                    keep_array_indentation: false,
+                    break_chained_methods: false,
+                    indent_scripts: 'normal', 
+                    brace_style: 'collapse', 
+                    space_before_conditional: true,
+                    unescape_strings: false,
+                    jslint_happy: false,
+                    end_with_newline: true, 
+                    wrap_line_length: 0, 
+                    indent_empty_lines: false,
+                };
+
+                if (currentMode.includes("html") || currentMode.includes("xml")) {
+                    if (typeof html_beautify !== 'undefined') {
+                        formattedContent = html_beautify(content, options);
+                    } else {
+                        showStatus('Formátovač HTML (html_beautify) není načten!', true);
+                        console.warn('Knihovna html_beautify není definována.');
+                        return;
+                    }
+                } else if (currentMode === "css") {
+                    if (typeof css_beautify !== 'undefined') {
+                        formattedContent = css_beautify(content, options);
+                    } else {
+                        showStatus('Formátovač CSS (css_beautify) není načten!', true);
+                        console.warn('Knihovna css_beautify není definována.');
+                        return;
+                    }
+                } else if (currentMode === "javascript") {
+                    if (typeof js_beautify !== 'undefined') { 
+                        formattedContent = js_beautify(content, options);
+                    } else {
+                        showStatus('Formátovač JS (js_beautify) není načten!', true);
+                        console.warn('Knihovna js_beautify není definována.');
+                        return;
+                    }
+                } else {
+                    showStatus(`Formátování pro typ "${currentMode}" není aktuálně podporováno.`, false);
+                    return; 
+                }
+                codeMirror.setValue(formattedContent);
+                showStatus('Kód úspěšně naformátován! ✨');
+            } catch (e) {
+                console.error("Chyba při formátování kódu:", e);
+                showStatus('Chyba při formátování! 💥 Zkontrolujte konzoli.', true);
+            }
+        }
+
+        function showStatus(message, isError = false) {
+            status.textContent = message;
+            status.style.background = isError ? 'var(--accent)' : 'var(--success)';
+            status.classList.add('show');
+            setTimeout(() => status.classList.remove('show'), 3000); 
+        }
+
+        function insertTag(tagName) {
+            const cursor = codeMirror.getCursor();
+            const selection = codeMirror.getSelection();
+            let newText = "";
+            switch (tagName) {
+                case 'img':
+                    newText = `<img src="https://placehold.co/100x100/0a1a24/47c2ff?text=IMG" alt="popisek">`;
+                    break;
+                case 'a':
+                    newText = `<a href="https://www.example.com" title="Odkaz">${selection || 'Text odkazu'}</a>`;
+                    break;
+                case 'table':
+                    newText = `<table>\n    <thead>\n        <tr>\n            <th>Záhlaví 1</th>\n            <th>Záhlaví 2</th>\n        </tr>\n    </thead>\n    <tbody>\n        <tr>\n            <td>Data 1.1</td>\n            <td>Data 1.2</td>\n        </tr>\n        <tr>\n            <td>Data 2.1</td>\n            <td>Data 2.2</td>\n        </tr>\n    </tbody>\n</table>`;
+                    break;
+                case 'ul':
+                    newText = `<ul>\n    <li>Položka 1</li>\n    <li>Položka 2</li>\n</ul>`;
+                    break;
+                 case 'form':
+                    newText = `<form action="#" method="post">\n    <label for="jmeno">Jméno:</label>\n    <input type="text" id="jmeno" name="jmeno" required>\n    <button type="submit">Odeslat</button>\n</form>`;
+                    break;
+                case 'input':
+                    newText = `<input type="text" placeholder="Zadejte text">`;
+                    break;
+                case 'button':
+                    newText = `<button type="button">${selection || 'Tlačítko'}</button>`;
+                    break;
+                default:
+                    if (selection) {
+                        newText = `<${tagName}>${selection}</${tagName}>`;
+                    } else {
+                        newText = `<${tagName}></${tagName}>`;
+                    }
+            }
+
+            if (selection) {
+                codeMirror.replaceSelection(newText);
+            } else {
+                codeMirror.replaceRange(newText, cursor);
+            }
+            codeMirror.focus();
+            showStatus(`Tag <${tagName}> vložen! 🚀`);
+        }
+
+        function changeTheme(themeName) { 
+            const root = document.documentElement;
+            const themes = {
+                default: { primary: '#47c2ff', secondary: '#235d77', accent: '#ff4747' },
+                red: { primary: '#ff4747', secondary: '#770000', accent: '#47c2ff' },
+                green: { primary: '#47ff47', secondary: '#007700', accent: '#ff4747' }
+            };
+            
+            if (themes[themeName]) {
+                Object.entries(themes[themeName]).forEach(([key, value]) => {
+                    root.style.setProperty(`--${key}`, value);
+                });
+                showStatus(`Motiv změněn na ${themeName}! 🎨`);
+            }
+        }
+
+        function changeCodeMirrorTheme(themeName) { 
+            codeMirror.setOption("theme", themeName);
+            showStatus(`Téma editoru změněno na ${themeName}! 🌟`);
+             localStorage.setItem('codeMirrorEditorTheme', themeName);
+        }
+
+        function changeSyntaxMode(language) { 
+            const modes = {
+                html: "htmlmixed",
+                css: "css", 
+                js: "javascript"
+            };
+            
+            if (modes[language]) {
+                codeMirror.setOption("mode", modes[language]);
+                
+                syntaxButtons.forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`[data-lang="${language}"]`).classList.add('active');
+                
+                // Volání performLint bylo ODSTRANĚNO, protože linting je deaktivován
+                showStatus(`Režim změněn na ${language.toUpperCase()}! ⚡`);
+            }
+        }
+
+        // Event listeners
+        codeMirror.on('change', updatePreview);
+        viewport.addEventListener('change', updateViewport);
+        saveBtn.addEventListener('click', saveCode);
+        formatBtn.addEventListener('click', formatCode);
+
+        themeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                changeTheme(btn.dataset.theme);
+            });
+        });
+
+        codeMirrorThemeSelect.addEventListener('change', (e) => {
+            changeCodeMirrorTheme(e.target.value);
+        });
+
+        tagButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                insertTag(btn.dataset.tag);
+            });
+        });
+
+        syntaxButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                changeSyntaxMode(btn.dataset.lang);
+            });
+        });
+
+        codeMirror.setOption("extraKeys", {
+            "Ctrl-S": function(cm) {
+                saveCode();
+                return false;
+            },
+            "Ctrl-Shift-F": function(cm) {
+                formatCode();
+                return false;
+            },
+            "F11": function(cm) {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+                showStatus('Fullscreen mode! 🖥️');
+                return false;
+            }
+        });
+
+        // Initial setup
+        updatePreview();
+        updateViewport();
+        showStatus('Star Trek HTML Editor Pro je připraven! 🖖', false);
+
+        setInterval(() => {
+            if (codeMirror.getValue().trim()) {
+                localStorage.setItem('star-trek-editor-backup', codeMirror.getValue());
+            }
+        }, 30000);
+
+        const backup = localStorage.getItem('star-trek-editor-backup');
+        if (backup && backup !== codeMirror.getValue()) {
+            showCustomConfirm('Nalezena záloha kódu. Chcete ji obnovit?', () => {
+                codeMirror.setValue(backup);
+                showStatus('Záloha obnovena! 💾');
+            });
+        }
+        
+        function showCustomConfirm(message, onConfirm, onCancel) {
+            const confirmModal = document.createElement('div');
+            confirmModal.style.position = 'fixed';
+            confirmModal.style.left = '50%';
+            confirmModal.style.top = '50%';
+            confirmModal.style.transform = 'translate(-50%, -50%)';
+            confirmModal.style.backgroundColor = 'var(--secondary)';
+            confirmModal.style.color = 'var(--text)';
+            confirmModal.style.padding = '20px';
+            confirmModal.style.border = '1px solid var(--primary)';
+            confirmModal.style.borderRadius = '8px';
+            confirmModal.style.zIndex = '2000';
+            confirmModal.style.boxShadow = '0 0 15px rgba(0,0,0,0.5)';
+            confirmModal.innerHTML = `
+                <p style="margin-bottom: 15px;">${message}</p>
+                <button id="confirmBtnModal" style="background:var(--primary); color:var(--background); border:none; padding:8px 15px; border-radius:4px; cursor:pointer; margin-right:10px;">Ano</button>
+                <button id="cancelBtnModal" style="background:var(--accent); color:var(--background); border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">Ne</button>
+            `;
+            document.body.appendChild(confirmModal);
+
+            document.getElementById('confirmBtnModal').onclick = () => {
+                if(onConfirm) onConfirm();
+                document.body.removeChild(confirmModal);
+            };
+            document.getElementById('cancelBtnModal').onclick = () => {
+                if(onCancel) onCancel();
+                document.body.removeChild(confirmModal);
+            };
+        }
+
+        const savedEditorTheme = localStorage.getItem('codeMirrorEditorTheme');
+        if (savedEditorTheme) {
+            codeMirrorThemeSelect.value = savedEditorTheme; 
+            codeMirror.setOption("theme", savedEditorTheme); 
+        } else { 
+             codeMirrorThemeSelect.value = "midnight"; 
+             codeMirror.setOption("theme", "midnight"); 
+        }
+        
+        const savedAppTheme = localStorage.getItem('appUserTheme');
+        if (savedAppTheme) {
+            changeTheme(savedAppTheme); 
+        }
+
+        // Volání performLint po načtení bylo ODSTRANĚNO
+
+    </script>
+</body>
+</html>
